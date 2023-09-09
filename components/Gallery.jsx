@@ -38,6 +38,7 @@ const Gallery = () => {
   return (
     <div className="grid grid-cols-4 sm:grid-cols-5 gap-[1px] md:gap-1">
       {data && <ImageMap data={data} />}
+      {data && <ImageMap data={data} />}
     </div>
   );
 };
