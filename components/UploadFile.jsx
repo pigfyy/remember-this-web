@@ -7,14 +7,13 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "./ui/use-toast";
 import Dropzone from "@/components/Dropzone";
-import { Line, Circle } from "rc-progress";
+import { Line } from "rc-progress";
 
 import { useAtom } from "jotai";
 import {
   isDialogOpenAtom,
-  isProcessingAtom,
-  currentlyUploadingFileAtom,
-  fileCountAtom,
+  processingCountAtom,
+  processingAmountAtom,
 } from "@/lib/jotai/uploadFileDialog";
 
 import { storage, auth } from "@/lib/firebase/firebase";
@@ -22,37 +21,40 @@ import { ref, getDownloadURL } from "firebase/storage";
 import { useUploadFile } from "react-firebase-hooks/storage";
 import { useAuthState } from "react-firebase-hooks/auth";
 
+import { getConcepts } from "@/lib/utils/imageRecognition";
+
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/firebase";
+
 const UploadFile = () => {
   const [isDialogOpen, setIsDialogOpen] = useAtom(isDialogOpenAtom);
-  const [isProcessing, setIsProcessing] = useAtom(isProcessingAtom);
-  const [currentlyUploadingFile, setCurrentlyUploadingFile] = useAtom(
-    currentlyUploadingFileAtom
-  );
-  const [fileCount, setFileCount] = useAtom(fileCountAtom);
+  const [processingCount, setProcessingCount] = useAtom(processingCountAtom);
+  const [processingAmount, setProcessingAmount] = useAtom(processingAmountAtom);
   const [uploadFile, uploading, snapshot, error] = useUploadFile();
   const [user] = useAuthState(auth);
   const { toast } = useToast();
 
   const onDrop = useCallback(
     (acceptedFiles, fileRejections) => {
-      const upload = async (files) => {
-        let images = [];
+      const uploadImages = async (files) => {
+        const images = [];
         const downloadURLPromises = [];
 
-        for (let i = 0; i < files.length; i++) {
+        for (const file of files) {
           const imageId = crypto.randomUUID();
-          const result = await uploadFile(
-            ref(storage, `${user.uid}/userID_${user.uid}_${imageId}`),
-            files[i],
-            {
-              contentType: "image/jpeg",
-            }
+          const storageRef = ref(
+            storage,
+            `${user.uid}/userID_${user.uid}_${imageId}`
           );
-          setCurrentlyUploadingFile(i + 1);
 
-          const downloadUrlPromise = getDownloadURL(
-            ref(storage, `${user.uid}/userID_${user.uid}_${imageId}`)
-          ).then((url) => {
+          // Upload the file
+          const result = await uploadFile(storageRef, file, {
+            contentType: "image/jpeg",
+          });
+          setProcessingCount((prevCount) => prevCount + 1);
+
+          // Get download URL
+          const downloadUrlPromise = getDownloadURL(storageRef).then((url) => {
             images.push({
               id: imageId,
               link: url,
@@ -62,19 +64,36 @@ const UploadFile = () => {
           downloadURLPromises.push(downloadUrlPromise);
         }
 
-        // Wait for all downloadURLPromises to resolve and process images
         await Promise.all(downloadURLPromises);
 
-        console.log(images);
+        // Add concepts for each image
+        setProcessingAmount(true);
 
-        // Processing finished, wrap upload up
+        const conceptPromises = images.map(async (image, i) => {
+          try {
+            const concepts = await getConcepts(image.link);
+            images[i] = { ...image, concepts };
+          } catch (error) {
+            console.error(error);
+          }
+        });
+
+        await Promise.all(conceptPromises);
+
+        // Upload file data to user's Firestore
+        images.forEach((image) => {
+          const imageRef = doc(db, "users", user.uid, "images", image.id);
+          setDoc(imageRef, { ...image });
+        });
+
+        // Processing finished, display success message
         toast({
           title: "Success!",
-          description: "Files uploaded!",
+          description: "Images uploaded!",
         });
-        setIsProcessing(false);
-        setFileCount(0);
-        setCurrentlyUploadingFile(0);
+        setProcessingAmount(0);
+        setProcessingCount(0);
+        setIsDialogOpen(false);
       };
 
       // Check if there are any file rejections
@@ -83,26 +102,25 @@ const UploadFile = () => {
           variant: "destructive",
           title: "Error!",
           description:
-            "Only .png and .jpeg files are accepted! Please try again!",
+            "Only .png and .jpeg images are accepted! Please try again!",
         });
       } else {
         // All files are accepted, process them
-        setIsProcessing(true);
-        setFileCount(acceptedFiles.length);
-        upload(acceptedFiles);
+        setProcessingAmount(acceptedFiles.length);
+        uploadImages(acceptedFiles);
       }
     },
     [
       toast,
       uploadFile,
-      setIsProcessing,
-      setCurrentlyUploadingFile,
-      setFileCount,
+      setProcessingCount,
+      setProcessingAmount,
+      setIsDialogOpen,
       user,
     ]
   );
 
-  const percent = (currentlyUploadingFile / fileCount) * 100;
+  const percent = (processingCount / processingAmount) * 100;
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -110,17 +128,22 @@ const UploadFile = () => {
         <DialogHeader>
           <DialogTitle>Upload Image(s)</DialogTitle>
         </DialogHeader>
-        {!isProcessing && <Dropzone uploadFile={uploadFile} onDrop={onDrop} />}
-        {isProcessing && (
+        {!processingAmount && (
+          <Dropzone uploadFile={uploadFile} onDrop={onDrop} />
+        )}
+        {!!(processingAmount && processingAmount !== true) && (
           <div>
             <div className="flex justify-between">
               <span className="text-sm text-neutral-600">Uploading...</span>
               <span className="text-sm">
-                {currentlyUploadingFile} of {fileCount}
+                {processingCount} of {processingAmount}
               </span>
             </div>
             <Line percent={percent} strokeWidth={4} strokeColor="#bfdbfe" />
           </div>
+        )}
+        {!!(processingAmount && processingAmount === true) && (
+          <span className="text-sm text-neutral-600">Analyzing...</span>
         )}
       </DialogContent>
     </Dialog>

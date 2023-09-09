@@ -27,12 +27,14 @@ const Header = () => {
           height={35}
           alt="Picture of the author"
         />
-        <h1 className="font-bold text-2xl">Remember This</h1>
+        <h1 className="font-bold text-2xl hidden md:block">Remember This</h1>
       </div>
       <div className="flex gap-3">
-        <Button variant="secondary" onClick={uploadFile}>
-          Upload Images
-        </Button>
+        {!!user && (
+          <Button variant="secondary" onClick={uploadFile}>
+            Upload Images
+          </Button>
+        )}
         {!user ? <SignIn /> : <SignOut />}
       </div>
     </header>

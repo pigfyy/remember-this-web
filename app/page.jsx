@@ -3,25 +3,24 @@
 import { Toaster } from "@/components/ui/toaster";
 
 import Header from "@/components/Header";
+import Main from "@/components/Main";
 import UploadFile from "@/components/UploadFile";
-
-import { getConcepts } from "@/lib/utils/imageRecognition";
+import ViewImage from "@/components/ViewImage";
 
 const Home = () => {
-  const IMAGE_URL =
-    "https://images.pexels.com/photos/2852474/pexels-photo-2852474.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
-
-  getConcepts(IMAGE_URL)
-    .then((concepts) => console.log(concepts))
-    .catch((error) => console.error(error));
-
   return (
     <>
       <div>
         <Header />
-        <UploadFile />
+        <Main />
       </div>
-      <Toaster />
+
+      {/* Floating components */}
+      <>
+        <Toaster />
+        <UploadFile />
+        <ViewImage />
+      </>
     </>
   );
 };
