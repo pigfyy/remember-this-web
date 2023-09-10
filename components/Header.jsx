@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 
 import SignIn from "@/components/SignIn";
 import SignOut from "@/components/SignOut";
+import SearchBox from "@/components/SearchBox";
 
 import { useAtom } from "jotai";
 import { isDialogOpenAtom } from "@/lib/jotai/uploadFileDialog";
@@ -19,19 +20,28 @@ const Header = () => {
   const uploadFile = () => setIsDialogOpen(true);
 
   return (
-    <header className="p-4 shadow-md flex justify-between">
-      <div className="flex items-center gap-3">
-        <Image
-          src="/logo.png"
-          width={35}
-          height={35}
-          alt="Picture of the author"
-        />
-        <h1 className="font-bold text-2xl hidden md:block">Remember This</h1>
+    <header className="p-4 shadow-md flex justify-between gap-6">
+      <div className="flex items-center gap-3 mr-8">
+        <div className="flex-shrink-0">
+          <Image
+            src="/logo.png"
+            width={35}
+            height={35}
+            alt="Picture of the author"
+          />
+        </div>
+        <h1 className="font-bold text-2xl hidden md:block whitespace-nowrap">
+          Remember This
+        </h1>
       </div>
-      <div className="flex gap-3">
+      <SearchBox />
+      <div className="flex items-center">
         {!!user && (
-          <Button variant="secondary" onClick={uploadFile}>
+          <Button
+            variant="secondary"
+            onClick={uploadFile}
+            className="whitespace-nowrap"
+          >
             Upload Images
           </Button>
         )}

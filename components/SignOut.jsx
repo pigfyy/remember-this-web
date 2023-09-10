@@ -7,7 +7,11 @@ const SignOut = () => {
   const [signOut, loading, error] = useSignOut(auth);
 
   return (
-    <Button onClick={signOut} variant="destructive">
+    <Button
+      onClick={signOut}
+      variant="destructive"
+      className="whitespace-nowrap"
+    >
       Sign out
     </Button>
   );

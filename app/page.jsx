@@ -10,7 +10,7 @@ import ViewImage from "@/components/ViewImage";
 const Home = () => {
   return (
     <>
-      <div className="flex flex-col max-h-screen">
+      <div className="flex flex-col h-screen">
         <Header />
         <Main />
       </div>

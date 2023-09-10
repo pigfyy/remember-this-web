@@ -13,7 +13,9 @@ const SignInWithGoogleButton = () => {
       <div className="p-2 bg-white">
         <FcGoogle size={20} />
       </div>
-      <span className="mr-2 text-sm">Sign in with Google</span>
+      <span className="mr-2 text-sm whitespace-nowrap">
+        Sign in with Google
+      </span>
     </button>
   );
 };
