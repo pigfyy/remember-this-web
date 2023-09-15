@@ -1,6 +1,6 @@
 import { useDropzone } from "react-dropzone";
 
-const Dropzone = ({ uploadFile, onDrop }) => {
+const Dropzone = ({ onDrop }) => {
   const { getRootProps, getInputProps, isDragActive, fileRejections } =
     useDropzone({
       onDrop,

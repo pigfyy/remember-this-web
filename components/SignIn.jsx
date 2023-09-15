@@ -12,7 +12,7 @@ const SignInWithGoogleButton = () => {
   const [signInWithGoogle, user, loading, error] = useSignInWithGoogle(auth);
 
   const signIn = async () => {
-    const uid = (await signInWithGoogle()).user.uid;
+    const uid = (await signInWithGoogle())?.user?.uid;
 
     const isClassExists = await doesClassExist(uid);
 

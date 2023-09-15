@@ -36,8 +36,8 @@ const UploadFile = () => {
 
   const onDrop = useCallback(
     (acceptedFiles, fileRejections) => {
-      const uploadImages = async (files) => {
-        const images = [];
+      const uploadToCloudStorage = async (files) => {
+        const res = [];
         const downloadURLPromises = [];
 
         for (const file of files) {
@@ -55,7 +55,7 @@ const UploadFile = () => {
 
           // Get download URL
           const downloadUrlPromise = getDownloadURL(storageRef).then((url) => {
-            images.push({
+            res.push({
               id: imageId,
               link: url,
               timeCreated: result.metadata.timeCreated,
@@ -65,10 +65,30 @@ const UploadFile = () => {
         }
 
         await Promise.all(downloadURLPromises);
+        return res;
+      };
 
-        // Add concepts for each image
+      const uploadImageDataToFirestore = (images) => {
+        images.forEach((image) => {
+          const imageRef = doc(db, "users", user.uid, "images", image.id);
+          setDoc(imageRef, { ...image });
+        });
+      };
+
+      const handleUploadSuccess = () => {
+        toast({
+          title: "Success!",
+          description: "Images uploaded!",
+        });
+        setProcessingAmount(0);
+        setProcessingCount(0);
+        setIsDialogOpen(false);
+      };
+
+      const uploadImages = async (files) => {
+        const images = await uploadToCloudStorage(files);
+
         setProcessingAmount(true);
-
         const conceptPromises = images.map(async (image, i) => {
           try {
             const concepts = await getConcepts(image.link);
@@ -77,23 +97,11 @@ const UploadFile = () => {
             console.error(error);
           }
         });
-
         await Promise.all(conceptPromises);
 
-        // Upload file data to user's Firestore
-        images.forEach((image) => {
-          const imageRef = doc(db, "users", user.uid, "images", image.id);
-          setDoc(imageRef, { ...image });
-        });
+        uploadImageDataToFirestore(images);
 
-        // Processing finished, display success message
-        toast({
-          title: "Success!",
-          description: "Images uploaded!",
-        });
-        setProcessingAmount(0);
-        setProcessingCount(0);
-        setIsDialogOpen(false);
+        handleUploadSuccess();
       };
 
       // Check if there are any file rejections
@@ -128,9 +136,7 @@ const UploadFile = () => {
         <DialogHeader>
           <DialogTitle>Upload Image(s)</DialogTitle>
         </DialogHeader>
-        {!processingAmount && (
-          <Dropzone uploadFile={uploadFile} onDrop={onDrop} />
-        )}
+        {!processingAmount && <Dropzone onDrop={onDrop} />}
         {!!(processingAmount && processingAmount !== true) && (
           <div>
             <div className="flex justify-between">
