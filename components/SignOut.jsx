@@ -1,5 +1,7 @@
 import React from "react";
 import { Button } from "./ui/button";
+import { LogOut } from "lucide-react";
+
 import { auth } from "@/lib/firebase/firebase";
 import { useSignOut } from "react-firebase-hooks/auth";
 
@@ -12,7 +14,8 @@ const SignOut = () => {
       variant="destructive"
       className="whitespace-nowrap"
     >
-      Sign out
+      <span className="hidden md:block">Sign Out</span>
+      <LogOut className="md:hidden" />
     </Button>
   );
 };

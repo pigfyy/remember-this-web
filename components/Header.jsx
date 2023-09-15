@@ -34,8 +34,7 @@ const Header = () => {
           Remember This
         </h1>
       </div>
-      <SearchBox />
-      <div className="flex items-center">
+      <div className="flex items-center gap-3">
         {!!user && (
           <Button
             variant="secondary"

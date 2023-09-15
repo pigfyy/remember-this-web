@@ -1,4 +1,5 @@
 import { FcGoogle } from "react-icons/fc";
+
 import { useSignInWithGoogle } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase/firebase";
 
@@ -29,7 +30,7 @@ const SignInWithGoogleButton = () => {
       <div className="p-2 bg-white">
         <FcGoogle size={20} />
       </div>
-      <span className="mr-2 text-sm whitespace-nowrap">
+      <span className="mr-2 text-sm whitespace-nowrap hidden md:block">
         Sign in with Google
       </span>
     </button>

@@ -21,10 +21,10 @@ import { ref, getDownloadURL } from "firebase/storage";
 import { useUploadFile } from "react-firebase-hooks/storage";
 import { useAuthState } from "react-firebase-hooks/auth";
 
-import { getConcepts } from "@/lib/utils/imageRecognition";
-
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
+
+import { client } from "@/lib/utils/weaviate";
 
 const UploadFile = () => {
   const [isDialogOpen, setIsDialogOpen] = useAtom(isDialogOpenAtom);
@@ -68,6 +68,52 @@ const UploadFile = () => {
         return res;
       };
 
+      const urlToBase64Blob = async (imageUrl) => {
+        try {
+          // Fetch the image using the URL
+          const response = await fetch(imageUrl);
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch the image");
+          }
+
+          // Read the response as a blob
+          const blob = await response.blob();
+
+          // Create a FileReader to read the blob as base64
+          const reader = new FileReader();
+
+          return new Promise((resolve, reject) => {
+            reader.onloadend = () => {
+              // The result contains the base64-encoded data
+              const base64data = reader.result.split(",")[1];
+              resolve(base64data);
+            };
+
+            // Read the blob as base64
+            reader.readAsDataURL(blob);
+          });
+        } catch (error) {
+          console.error("Error:", error);
+          throw error;
+        }
+      };
+
+      const vectorizeImages = async (images) => {
+        images.forEach(async (image) => {
+          const base64blob = await urlToBase64Blob(image.link);
+
+          await client.data
+            .creator()
+            .withClassName(user.uid)
+            .withProperties({
+              image: base64blob,
+            })
+            .withId(image.id)
+            .do();
+        });
+      };
+
       const uploadImageDataToFirestore = (images) => {
         images.forEach((image) => {
           const imageRef = doc(db, "users", user.uid, "images", image.id);
@@ -88,16 +134,7 @@ const UploadFile = () => {
       const uploadImages = async (files) => {
         const images = await uploadToCloudStorage(files);
 
-        setProcessingAmount(true);
-        const conceptPromises = images.map(async (image, i) => {
-          try {
-            const concepts = await getConcepts(image.link);
-            images[i] = { ...image, concepts };
-          } catch (error) {
-            console.error(error);
-          }
-        });
-        await Promise.all(conceptPromises);
+        await vectorizeImages(images);
 
         uploadImageDataToFirestore(images);
 
