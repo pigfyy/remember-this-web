@@ -21,97 +21,52 @@ import { ref, getDownloadURL } from "firebase/storage";
 import { useUploadFile } from "react-firebase-hooks/storage";
 import { useAuthState } from "react-firebase-hooks/auth";
 
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
 import { client } from "@/lib/utils/weaviate";
+
+import { fileToBase64BlobString, b64ToBlobUrl } from "@/lib/utils/processing";
 
 const UploadFile = () => {
   const [isDialogOpen, setIsDialogOpen] = useAtom(isDialogOpenAtom);
   const [processingCount, setProcessingCount] = useAtom(processingCountAtom);
   const [processingAmount, setProcessingAmount] = useAtom(processingAmountAtom);
-  const [uploadFile, uploading, snapshot, error] = useUploadFile();
   const [user] = useAuthState(auth);
   const { toast } = useToast();
 
   const onDrop = useCallback(
     (acceptedFiles, fileRejections) => {
-      const uploadToCloudStorage = async (files) => {
-        const res = [];
-        const downloadURLPromises = [];
+      const vectorizeImages = async (files) => {
+        const imagePromises = [];
 
         for (const file of files) {
-          const imageId = crypto.randomUUID();
-          const storageRef = ref(
-            storage,
-            `${user.uid}/userID_${user.uid}_${imageId}`
-          );
+          const id = crypto.randomUUID();
+          const b64BlobString = (await fileToBase64BlobString(file)).split(
+            ","
+          )[1];
 
-          // Upload the file
-          const result = await uploadFile(storageRef, file, {
-            contentType: "image/jpeg",
-          });
-          setProcessingCount((prevCount) => prevCount + 1);
-
-          // Get download URL
-          const downloadUrlPromise = getDownloadURL(storageRef).then((url) => {
-            res.push({
-              id: imageId,
-              link: url,
-              timeCreated: result.metadata.timeCreated,
-            });
-          });
-          downloadURLPromises.push(downloadUrlPromise);
-        }
-
-        await Promise.all(downloadURLPromises);
-        return res;
-      };
-
-      const urlToBase64Blob = async (imageUrl) => {
-        try {
-          // Fetch the image using the URL
-          const response = await fetch(imageUrl);
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch the image");
-          }
-
-          // Read the response as a blob
-          const blob = await response.blob();
-
-          // Create a FileReader to read the blob as base64
-          const reader = new FileReader();
-
-          return new Promise((resolve, reject) => {
-            reader.onloadend = () => {
-              // The result contains the base64-encoded data
-              const base64data = reader.result.split(",")[1];
-              resolve(base64data);
-            };
-
-            // Read the blob as base64
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) {
-          console.error("Error:", error);
-          throw error;
-        }
-      };
-
-      const vectorizeImages = async (images) => {
-        images.forEach(async (image) => {
-          const base64blob = await urlToBase64Blob(image.link);
-
-          await client.data
+          const imagePromise = client.data
             .creator()
             .withClassName(user.uid)
             .withProperties({
-              image: base64blob,
+              image: b64BlobString,
             })
-            .withId(image.id)
-            .do();
-        });
+            .withId(id)
+            .do()
+            .then(() => {
+              const link = b64ToBlobUrl(b64BlobString);
+              const timeCreated = Timestamp.now();
+              return { id, link, timeCreated };
+            });
+
+          setProcessingCount((prevCount) => prevCount + 1);
+
+          await imagePromise;
+        }
+
+        const images = await Promise.all(imagePromises);
+        return images;
       };
 
       const uploadImageDataToFirestore = (images) => {
@@ -132,9 +87,9 @@ const UploadFile = () => {
       };
 
       const uploadImages = async (files) => {
-        const images = await uploadToCloudStorage(files);
+        const images = await vectorizeImages(files);
 
-        await vectorizeImages(images);
+        setProcessingCount(true);
 
         uploadImageDataToFirestore(images);
 
@@ -155,14 +110,7 @@ const UploadFile = () => {
         uploadImages(acceptedFiles);
       }
     },
-    [
-      toast,
-      uploadFile,
-      setProcessingCount,
-      setProcessingAmount,
-      setIsDialogOpen,
-      user,
-    ]
+    [toast, setProcessingCount, setProcessingAmount, setIsDialogOpen, user]
   );
 
   const percent = (processingCount / processingAmount) * 100;

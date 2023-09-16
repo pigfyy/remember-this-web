@@ -5,39 +5,27 @@ import { CornerRightDown } from "lucide-react";
 
 import { useAtom } from "jotai";
 import { questionAtom, resImgAtom, resTextAtom } from "@/lib/jotai/viewResult";
+import { mainTabAtom } from "@/lib/jotai/mainTab";
 
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase/firebase";
 
 import { search } from "@/lib/utils/weaviate";
 
-import { capitalizeFirstLetter } from "@/lib/utils/processing";
-
-function b64toBlob(base64String, contentType) {
-  const byteCharacters = atob(base64String);
-  const byteNumbers = new Array(byteCharacters.length);
-
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-
-  const byteArray = new Uint8Array(byteNumbers);
-
-  return new Blob([byteArray], { type: contentType });
-}
+import { capitalizeFirstLetter, b64ToBlobUrl } from "@/lib/utils/processing";
 
 const SearchBox = () => {
   const [question, setQuestion] = useAtom(questionAtom);
   const [resImg, setResImg] = useAtom(resImgAtom);
   const [resText, setResText] = useAtom(resTextAtom);
+  const [, setMainTab] = useAtom(mainTabAtom);
   const [user] = useAuthState(auth);
   const inputRef = useRef(null);
 
   const performSearch = async (searchString) => {
     const capitalizedId = capitalizeFirstLetter(user.uid);
     const b64 = await search(searchString, capitalizedId);
-    const blob = b64toBlob(b64, "image/png");
-    const blobUrl = URL.createObjectURL(blob);
+    const blobUrl = b64ToBlobUrl(b64);
 
     setResImg({ blobUrl, b64 });
   };
@@ -53,6 +41,8 @@ const SearchBox = () => {
     await performSearch(searchString);
 
     inputRef.current.value = "";
+
+    setMainTab("result");
   };
 
   return (
