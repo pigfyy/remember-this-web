@@ -60,12 +60,10 @@ const UploadFile = () => {
               return { id, link, timeCreated };
             });
 
-          setProcessingCount((prevCount) => prevCount + 1);
-
-          await imagePromise;
+          imagePromises.push(imagePromise);
         }
-
         const images = await Promise.all(imagePromises);
+
         return images;
       };
 
@@ -88,8 +86,6 @@ const UploadFile = () => {
 
       const uploadImages = async (files) => {
         const images = await vectorizeImages(files);
-
-        setProcessingCount(true);
 
         uploadImageDataToFirestore(images);
 

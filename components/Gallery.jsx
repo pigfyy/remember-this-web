@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import Image from "next/image";
 
 import { useAtom } from "jotai";
@@ -9,7 +9,7 @@ import { auth } from "@/lib/firebase/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useUserImages } from "@/lib/firebase/firestore";
 
-import { queryUserImages } from "@/lib/utils/weaviate";
+import { client, queryUserImages } from "@/lib/utils/weaviate";
 
 import { b64ToBlobUrl } from "@/lib/utils/processing";
 
@@ -27,7 +27,7 @@ const ImageMap = ({ data }) => {
       {data.map((img, i) => (
         <button onClick={() => handleClick(i)} key={crypto.randomUUID()}>
           <Image
-            src={img}
+            src={img.link}
             width={250}
             height={250}
             alt="Picture of the author"
@@ -39,30 +39,46 @@ const ImageMap = ({ data }) => {
   );
 };
 
+import { capitalizeFirstLetter } from "@/lib/utils/processing";
+
 const Gallery = () => {
+  const [user] = useAuthState(auth);
+  const [userImages] = useUserImages();
   const [userImageUrls, setUserImageUrls] = useAtom(userImageUrlsAtom);
 
-  const [user] = useAuthState(auth);
-
   useEffect(() => {
-    const getUserImages = async () => {
-      const data = await queryUserImages(user.uid);
+    const temp = async () => {
+      let images = [];
 
-      const blobs = data?.map((imageObj) => {
-        const b64 = imageObj.image;
+      for (const userImage of userImages) {
+        const id = userImage.id;
 
-        return b64ToBlobUrl(b64);
-      });
+        const result = await client.data
+          .getterById()
+          .withClassName(capitalizeFirstLetter(user.uid))
+          .withId(id)
+          .do();
 
-      setUserImageUrls(blobs);
+        const b64 = result.properties.image;
+        const url = b64ToBlobUrl(b64);
+
+        images.push(url);
+      }
+
+      setUserImageUrls(images);
     };
 
-    if (user) getUserImages();
-  }, [user, setUserImageUrls]);
+    console.log(userImages);
+    if (userImages.length) {
+      temp();
+    }
+  }, [userImages, user]);
+
+  console.log(userImageUrls);
 
   return (
     <div className="grid grid-cols-4 sm:grid-cols-5 gap-[1px] md:gap-1">
-      {userImageUrls.length ? <ImageMap data={userImageUrls} /> : null}
+      {/* {userImages.length ? <ImageMap data={userImages} /> : null} */}
     </div>
   );
 };
