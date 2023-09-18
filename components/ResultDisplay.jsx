@@ -5,9 +5,11 @@ import { useAtom } from "jotai";
 import { questionAtom, resImgAtom, resTextAtom } from "@/lib/jotai/viewResult";
 
 const ResultDisplay = () => {
-  const [question, setQuestion] = useAtom(questionAtom);
-  const [resImg, setResImg] = useAtom(resImgAtom);
-  const [resText, setResText] = useAtom(resTextAtom);
+  const [question] = useAtom(questionAtom);
+  const [resImg] = useAtom(resImgAtom);
+  const [resText] = useAtom(resTextAtom);
+
+  console.log(resText);
 
   return (
     <>
@@ -19,6 +21,16 @@ const ResultDisplay = () => {
           </div>
 
           <Image src={resImg.blobUrl} alt="" width={400} height={400} />
+
+          <div>
+            <p className="text-xl">Answer:</p>
+            <p className="font-bold text-lg">{resText.answer}</p>
+            <div className="h-3"></div>
+            <p className="text-md">Confidence:</p>
+            <p className="text-sm font-bold">
+              {Math.round(resText.score * 100)}%
+            </p>
+          </div>
         </div>
       ) : null}
     </>

@@ -14,10 +14,12 @@ import { search } from "@/lib/utils/weaviate";
 
 import { capitalizeFirstLetter, b64ToBlobUrl } from "@/lib/utils/processing";
 
+import { vqa } from "@/lib/utils/hf";
+
 const SearchBox = () => {
-  const [question, setQuestion] = useAtom(questionAtom);
-  const [resImg, setResImg] = useAtom(resImgAtom);
-  const [resText, setResText] = useAtom(resTextAtom);
+  const [, setQuestion] = useAtom(questionAtom);
+  const [, setResImg] = useAtom(resImgAtom);
+  const [, setResText] = useAtom(resTextAtom);
   const [, setMainTab] = useAtom(mainTabAtom);
   const [user] = useAuthState(auth);
   const inputRef = useRef(null);
@@ -27,21 +29,23 @@ const SearchBox = () => {
     const b64 = await search(searchString, capitalizedId);
     const blobUrl = b64ToBlobUrl(b64);
 
-    setResImg({ blobUrl, b64 });
+    return { blobUrl, b64 };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const searchString = inputRef.current?.value;
-    setQuestion(searchString);
-
     if (searchString === "") return;
 
-    await performSearch(searchString);
+    setQuestion(searchString);
+
+    const imgResult = await performSearch(searchString);
+    setResImg(imgResult);
+
+    const textResult = (await vqa(searchString, imgResult.blobUrl)).res;
+    setResText(textResult);
 
     inputRef.current.value = "";
-
     setMainTab("result");
   };
 
