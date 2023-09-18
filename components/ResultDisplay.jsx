@@ -9,8 +9,6 @@ const ResultDisplay = () => {
   const [resImg] = useAtom(resImgAtom);
   const [resText] = useAtom(resTextAtom);
 
-  console.log(resText);
-
   return (
     <>
       {question.length ? (
