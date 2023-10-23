@@ -7,20 +7,14 @@ import Main from "@/components/Main";
 import UploadFile from "@/components/UploadFile";
 import ViewImage from "@/components/ViewImage";
 
+import { client } from "@/lib/utils/weaviate";
+
+import { deleteAllUserObjects } from "@/lib/utils/weaviate";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase/firebase";
+
 const Home = () => {
-  // const test = async () => {
-  //   if (loading) return;
-
-  //   const result = await client.graphql
-  //     .get()
-  //     .withClassName("OjMssz8VLET5oohgwj5TdJOFyH83")
-  //     .withFields(["name", "image"])
-  //     .withNearText({ concepts: ["dog"] })
-  //     .withLimit(1)
-  //     .do();
-
-  //   console.log(result);
-  // };
+  const [user, loading, error] = useAuthState(auth);
 
   return (
     <>

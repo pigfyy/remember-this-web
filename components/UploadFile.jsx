@@ -24,7 +24,10 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
+import { getEmbedding } from "@/lib/utils/embedding";
 import { client } from "@/lib/utils/weaviate";
+
+import { urlToBase64Blob } from "@/lib/utils/processing";
 
 const UploadFile = () => {
   const [isDialogOpen, setIsDialogOpen] = useAtom(isDialogOpenAtom);
@@ -46,8 +49,6 @@ const UploadFile = () => {
             storage,
             `${user.uid}/userID_${user.uid}_${imageId}`
           );
-
-          // Upload the file
           const result = await uploadFile(storageRef, file, {
             contentType: "image/jpeg",
           });
@@ -68,50 +69,15 @@ const UploadFile = () => {
         return res;
       };
 
-      const urlToBase64Blob = async (imageUrl) => {
-        try {
-          // Fetch the image using the URL
-          const response = await fetch(imageUrl);
+      const getEmbeddings = async (images) => {
+        const newImages = [];
 
-          if (!response.ok) {
-            throw new Error("Failed to fetch the image");
-          }
-
-          // Read the response as a blob
-          const blob = await response.blob();
-
-          // Create a FileReader to read the blob as base64
-          const reader = new FileReader();
-
-          return new Promise((resolve, reject) => {
-            reader.onloadend = () => {
-              // The result contains the base64-encoded data
-              const base64data = reader.result.split(",")[1];
-              resolve(base64data);
-            };
-
-            // Read the blob as base64
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) {
-          console.error("Error:", error);
-          throw error;
+        for (const image of images) {
+          const embedding = await getEmbedding({ image: image.link });
+          newImages.push({ ...image, embedding });
         }
-      };
 
-      const vectorizeImages = async (images) => {
-        images.forEach(async (image) => {
-          const base64blob = await urlToBase64Blob(image.link);
-
-          await client.data
-            .creator()
-            .withClassName(user.uid)
-            .withProperties({
-              image: base64blob,
-            })
-            .withId(image.id)
-            .do();
-        });
+        return newImages;
       };
 
       const uploadImageDataToFirestore = (images) => {
@@ -132,11 +98,11 @@ const UploadFile = () => {
       };
 
       const uploadImages = async (files) => {
-        const images = await uploadToCloudStorage(files);
-
-        await vectorizeImages(images);
+        let images = await uploadToCloudStorage(files);
 
         uploadImageDataToFirestore(images);
+
+        images = await getEmbeddings(images);
 
         handleUploadSuccess();
       };
@@ -173,8 +139,8 @@ const UploadFile = () => {
         <DialogHeader>
           <DialogTitle>Upload Image(s)</DialogTitle>
         </DialogHeader>
-        {!processingAmount && <Dropzone onDrop={onDrop} />}
-        {!!(processingAmount && processingAmount !== true) && (
+        {!!!processingAmount && <Dropzone onDrop={onDrop} />}
+        {!!processingAmount && (
           <div>
             <div className="flex justify-between">
               <span className="text-sm text-neutral-600">Uploading...</span>
@@ -184,9 +150,6 @@ const UploadFile = () => {
             </div>
             <Line percent={percent} strokeWidth={4} strokeColor="#bfdbfe" />
           </div>
-        )}
-        {!!(processingAmount && processingAmount === true) && (
-          <span className="text-sm text-neutral-600">Analyzing...</span>
         )}
       </DialogContent>
     </Dialog>
