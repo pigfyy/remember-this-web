@@ -27,6 +27,8 @@ import { db } from "@/lib/firebase/firebase";
 import { getEmbedding } from "@/lib/utils/embedding";
 import { client } from "@/lib/utils/weaviate";
 
+import { insertRecord } from "@/lib/utils/pinecone";
+
 import { urlToBase64Blob } from "@/lib/utils/processing";
 
 const UploadFile = () => {
@@ -39,52 +41,60 @@ const UploadFile = () => {
 
   const onDrop = useCallback(
     (acceptedFiles, fileRejections) => {
-      const uploadToCloudStorage = async (files) => {
-        const res = [];
-        const downloadURLPromises = [];
-
-        for (const file of files) {
-          const imageId = crypto.randomUUID();
-          const storageRef = ref(
-            storage,
-            `${user.uid}/userID_${user.uid}_${imageId}`
-          );
-          const result = await uploadFile(storageRef, file, {
-            contentType: "image/jpeg",
-          });
-          setProcessingCount((prevCount) => prevCount + 1);
-
-          // Get download URL
-          const downloadUrlPromise = getDownloadURL(storageRef).then((url) => {
-            res.push({
-              id: imageId,
-              link: url,
-              timeCreated: result.metadata.timeCreated,
-            });
-          });
-          downloadURLPromises.push(downloadUrlPromise);
-        }
-
-        await Promise.all(downloadURLPromises);
-        return res;
-      };
-
-      const getEmbeddings = async (images) => {
-        const newImages = [];
-
-        for (const image of images) {
-          const embedding = await getEmbedding({ image: image.link });
-          newImages.push({ ...image, embedding });
-        }
-
-        return newImages;
-      };
-
-      const uploadImageDataToFirestore = (images) => {
-        images.forEach((image) => {
-          const imageRef = doc(db, "users", user.uid, "images", image.id);
-          setDoc(imageRef, { ...image });
+      // uplads the images to cloud storage
+      const uploadImageToCloudStorage = async (file, id) => {
+        const storageRef = ref(storage, `${user.uid}/userID_${user.uid}_${id}`);
+        const result = await uploadFile(storageRef, file, {
+          contentType: "image/jpeg",
         });
+
+        const imageUrl = await getDownloadURL(storageRef);
+
+        return {
+          imageUrl,
+          timeCreated: result.metadata.timeCreated,
+        };
+      };
+
+      // uploads the image data to firestore
+      const uploadImageDataToFirestore = async (image) => {
+        const imageRef = doc(db, "users", user.uid, "images", image.id);
+        setDoc(imageRef, { ...image });
+      };
+
+      //
+      const processImages = async (files) => {
+        for (const file of files) {
+          const id = crypto.randomUUID();
+
+          let image = { id };
+
+          // upload image to cloud storage, adds imageUrl and timeCreated attributes to "image"
+          const { imageUrl, timeCreated } = await uploadImageToCloudStorage(
+            file,
+            id
+          );
+          image = { ...image, imageUrl, timeCreated };
+
+          // grabs embedding, add embedding to pineconedb
+          const embedding = await getEmbedding({ image: image.imageUrl });
+
+          // creates record object, and sends it to a function where it's upserted
+          const record = {
+            id: image.id,
+            values: embedding,
+            metadata: {
+              imageUrl: image.imageUrl,
+            },
+          };
+
+          await insertRecord(user.uid, record);
+
+          // upload image data to cloud firestore
+          uploadImageDataToFirestore(image);
+
+          setProcessingCount((prevCount) => prevCount + 1);
+        }
       };
 
       const handleUploadSuccess = () => {
@@ -98,11 +108,11 @@ const UploadFile = () => {
       };
 
       const uploadImages = async (files) => {
-        let images = await uploadToCloudStorage(files);
+        let images = await processImages(files);
 
-        uploadImageDataToFirestore(images);
+        // uploadImageDataToFirestore(images);
 
-        images = await getEmbeddings(images);
+        // images = await getEmbeddings(images);
 
         handleUploadSuccess();
       };

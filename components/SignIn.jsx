@@ -3,11 +3,7 @@ import { FcGoogle } from "react-icons/fc";
 import { useSignInWithGoogle } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase/firebase";
 
-import {
-  doesClassExist,
-  createClass,
-  deleteAllClasses,
-} from "@/lib/utils/weaviate";
+import { listIndexes, createClass } from "@/lib/utils/pinecone";
 
 const SignInWithGoogleButton = () => {
   const [signInWithGoogle, user, loading, error] = useSignInWithGoogle(auth);
@@ -15,11 +11,17 @@ const SignInWithGoogleButton = () => {
   const signIn = async () => {
     const uid = (await signInWithGoogle())?.user?.uid;
 
-    const isClassExists = await doesClassExist(uid);
+    const index = await listIndexes();
 
-    if (isClassExists) return;
+    // returns if index list includes an index named with the users id
+    for (const i of index) {
+      if (i.name == uid.toLowerCase()) return;
+    }
 
-    createClass(uid);
+    // creates class, and checks for error
+    const response = await createClass(uid);
+    if (response.status !== 200)
+      console.error("Something has gone wrong while creating new index...");
   };
 
   return (

@@ -12,13 +12,13 @@ const ViewImage = () => {
   const [imageIndex] = useAtom(imageIndexAtom);
   const [images, loading, error] = useUserImages();
 
-  const imageLink = images[imageIndex] ? images[imageIndex].link : "";
+  const imageLink = images[imageIndex] ? images[imageIndex].imageUrl : "";
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <div className="mt-6">
-          <Image src={imageLink} alt="User image" width={500} height={500} />
+          <img src={imageLink} alt="User image" width={500} height={500} />
         </div>
       </DialogContent>
     </Dialog>

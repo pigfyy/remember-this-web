@@ -17,6 +17,7 @@ import { auth } from "@/lib/firebase/firebase";
 
 import { getEmbedding } from "@/lib/utils/embedding";
 import { search } from "@/lib/utils/weaviate";
+import { performSearch } from "@/lib/utils/pinecone";
 
 import { capitalizeFirstLetter, b64ToBlobUrl } from "@/lib/utils/processing";
 
@@ -31,30 +32,20 @@ const SearchBox = () => {
   const [user] = useAuthState(auth);
   const inputRef = useRef(null);
 
-  const performSearch = async (embedding) => {
-    const capitalizedId = capitalizeFirstLetter(user.uid);
-    const { image, imageUrl } = await search(embedding, capitalizedId);
-
-    const blobUrl = b64ToBlobUrl(image);
-
-    return { imageUrl, blobUrl, b64: image };
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const searchString = inputRef.current?.value;
     if (searchString === "") return;
 
     setIsLoading(true);
-    setQuestion(searchString);
 
     const embedding = await getEmbedding({ text: searchString });
-    const imgResult = await performSearch(embedding);
-    setResImg(imgResult);
 
-    console.log(imgResult);
+    const imgLink = await performSearch(user.uid, embedding);
+    const textResult = (await vqa(searchString, imgLink)).res;
 
-    const textResult = (await vqa(searchString, imgResult.blobUrl)).res;
+    setQuestion(searchString);
+    setResImg(imgLink);
     setResText(textResult);
 
     inputRef.current.value = "";

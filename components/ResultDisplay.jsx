@@ -18,7 +18,7 @@ const ResultDisplay = () => {
             <p className="font-bold text-lg">{question}</p>
           </div>
 
-          <Image src={resImg.blobUrl} alt="" width={400} height={400} />
+          <Image src={resImg} alt="" width={400} height={400} />
 
           <div>
             <p className="text-xl">Answer:</p>

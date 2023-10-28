@@ -19,10 +19,8 @@ const ImageMap = ({ data }) => {
     <>
       {data.map((img, i) => (
         <button onClick={() => handleClick(i)} key={crypto.randomUUID()}>
-          <Image
-            src={img.link}
-            width={250}
-            height={250}
+          <img
+            src={img.imageUrl}
             alt="Picture of the author"
             className="object-cover aspect-square w-full"
           />
