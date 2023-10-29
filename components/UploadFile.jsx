@@ -30,6 +30,7 @@ import { client } from "@/lib/utils/weaviate";
 import { insertRecord } from "@/lib/utils/pinecone";
 
 import { urlToBase64Blob } from "@/lib/utils/processing";
+import { Progress } from "./ui/progress";
 
 const UploadFile = () => {
   const [isDialogOpen, setIsDialogOpen] = useAtom(isDialogOpenAtom);
@@ -151,14 +152,14 @@ const UploadFile = () => {
         </DialogHeader>
         {!!!processingAmount && <Dropzone onDrop={onDrop} />}
         {!!processingAmount && (
-          <div>
+          <div className="flex flex-col gap-1">
             <div className="flex justify-between">
               <span className="text-sm text-neutral-600">Uploading...</span>
               <span className="text-sm">
                 {processingCount} of {processingAmount}
               </span>
             </div>
-            <Line percent={percent} strokeWidth={4} strokeColor="#bfdbfe" />
+            <Progress value={percent} />
           </div>
         )}
       </DialogContent>

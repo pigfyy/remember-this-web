@@ -22,6 +22,8 @@ import { performSearch } from "@/lib/utils/pinecone";
 import { capitalizeFirstLetter, b64ToBlobUrl } from "@/lib/utils/processing";
 
 import { vqa } from "@/lib/utils/hf";
+import { useUserImages } from "@/lib/firebase/firestore";
+import { useToast } from "./ui/use-toast";
 
 const SearchBox = () => {
   const [, setQuestion] = useAtom(questionAtom);
@@ -30,19 +32,30 @@ const SearchBox = () => {
   const [, setResImg] = useAtom(resImgAtom);
   const [, setResText] = useAtom(resTextAtom);
   const [user] = useAuthState(auth);
+  const [userImages, loading, error] = useUserImages();
+  const { toast } = useToast();
+
   const inputRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const searchString = inputRef.current?.value;
-    if (searchString === "") return;
+    if (!searchString || !userImages.length) {
+      inputRef.current.value = "";
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "You don't have any images uploaded!",
+      });
+      return;
+    }
 
     setIsLoading(true);
 
     const embedding = await getEmbedding({ text: searchString });
 
     const imgLink = await performSearch(user.uid, embedding);
-    const textResult = (await vqa(searchString, imgLink)).res;
+    const textResult = await vqa(searchString, imgLink);
 
     setQuestion(searchString);
     setResImg(imgLink);

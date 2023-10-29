@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Main from "@/components/Main";
 import UploadFile from "@/components/UploadFile";
 import ViewImage from "@/components/ViewImage";
+import DevMenu from "@/components/DevMenu";
 
 import { client } from "@/lib/utils/weaviate";
 
@@ -28,6 +29,8 @@ const Home = () => {
         <Toaster />
         <UploadFile />
         <ViewImage />
+
+        <DevMenu />
       </>
     </>
   );
