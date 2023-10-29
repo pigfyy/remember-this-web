@@ -150,8 +150,8 @@ const UploadFile = () => {
         <DialogHeader>
           <DialogTitle>Upload Image(s)</DialogTitle>
         </DialogHeader>
-        {!!!processingAmount && <Dropzone onDrop={onDrop} />}
-        {!!processingAmount && (
+        {!processingAmount ? <Dropzone onDrop={onDrop} /> : null}
+        {processingAmount ? (
           <div className="flex flex-col gap-1">
             <div className="flex justify-between">
               <span className="text-sm text-neutral-600">Uploading...</span>
@@ -161,7 +161,7 @@ const UploadFile = () => {
             </div>
             <Progress value={percent} />
           </div>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );
