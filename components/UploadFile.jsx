@@ -25,11 +25,8 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
 import { getEmbedding } from "@/lib/utils/embedding";
-import { client } from "@/lib/utils/weaviate";
-
 import { insertRecord } from "@/lib/utils/pinecone";
 
-import { urlToBase64Blob } from "@/lib/utils/processing";
 import { Progress } from "./ui/progress";
 
 const UploadFile = () => {

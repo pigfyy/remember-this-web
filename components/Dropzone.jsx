@@ -13,8 +13,8 @@ const Dropzone = ({ onDrop }) => {
     <>
       <div
         {...getRootProps()}
-        className={`px-8 py-12 border-dashed bg-blue-200 ${
-          !fileRejections.length ? "border-white" : "border-red-600"
+        className={`px-8 py-12 border-dashed bg-neutral-200 ${
+          !fileRejections.length ? "border-neutral-700" : "border-red-600"
         } border-[2px] rounded-lg`}
       >
         <input {...getInputProps()} />

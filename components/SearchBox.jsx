@@ -16,10 +16,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase/firebase";
 
 import { getEmbedding } from "@/lib/utils/embedding";
-import { search } from "@/lib/utils/weaviate";
 import { performSearch } from "@/lib/utils/pinecone";
-
-import { capitalizeFirstLetter, b64ToBlobUrl } from "@/lib/utils/processing";
 
 import { vqa } from "@/lib/utils/hf";
 import { useUserImages } from "@/lib/firebase/firestore";

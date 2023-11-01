@@ -4,7 +4,6 @@ import { Button } from "./ui/button";
 
 import SignIn from "@/components/SignIn";
 import SignOut from "@/components/SignOut";
-import SearchBox from "@/components/SearchBox";
 
 import { useAtom } from "jotai";
 import { isDialogOpenAtom } from "@/lib/jotai/uploadFileDialog";
